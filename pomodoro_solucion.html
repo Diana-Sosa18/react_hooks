@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pomodoro Timer — Solución Completa</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #f0f0f0;
+      --muted: #888;
+      --dim: #555;
+      --accent: #ff4d33;
+      --accent-dim: rgba(255,77,51,0.15);
+      --green: #2ecc8a;
+      --green-dim: rgba(46,204,138,0.15);
+      --blue: #4d9fff;
+      --blue-dim: rgba(77,159,255,0.15);
+      --yellow: #ffc94d;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .tabs-wrapper {
+      width: 100%;
+      max-width: 520px;
+      padding: 32px 20px 0;
+    }
+
+    .level-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--dim);
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 8px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .tab.active { color: var(--text); background: #2a2a2a; }
+    .tab .sub {
+      display: block;
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--dim);
+      margin-top: 2px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .timer-container {
+      width: 100%;
+      max-width: 520px;
+      padding: 0 20px 60px;
+    }
+
+    .pomodoro {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px 32px 32px;
+      text-align: center;
+    }
+
+    .mode-badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .mode-badge.work {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(255,77,51,0.3);
+    }
+    .mode-badge.break {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid rgba(46,204,138,0.3);
+    }
+
+    .clock {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 72px;
+      font-weight: 300;
+      letter-spacing: -2px;
+      margin: 0 0 8px;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .progress-wrapper { margin: 20px 0 28px; }
+    .progress-track {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s linear, background-color 0.3s;
+    }
+    .progress-fill.work { background: var(--accent); }
+    .progress-fill.break { background: var(--green); }
+
+    .config-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      justify-content: center;
+    }
+    .config-field {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .config-field label {
+      font-size: 11px;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .config-field input {
+      width: 72px;
+      padding: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 18px;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+    .config-field input:focus { outline: none; border-color: var(--accent); }
+    .config-field input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 11px 22px;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #ff6347; }
+    .btn-secondary { background: #2a2a2a; color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #333; }
+    .btn-outline { background: transparent; color: var(--green); border: 1px solid rgba(46,204,138,0.35); }
+    .btn-outline:hover { background: var(--green-dim); }
+
+    .sessions-section {
+      margin-top: 28px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      text-align: left;
+    }
+    .sessions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .sessions-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .stats-row { display: flex; gap: 16px; }
+    .stat { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+    .stat-val { color: var(--yellow); font-weight: 600; }
+    .stat-lbl { color: var(--dim); }
+
+    .sessions-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .sessions-list::-webkit-scrollbar { width: 4px; }
+    .sessions-list::-webkit-scrollbar-track { background: transparent; }
+    .sessions-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .session-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    .session-num { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--dim); width: 22px; flex-shrink: 0; }
+    .session-type {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.5px;
+    }
+    .session-type.work { background: var(--accent-dim); color: var(--accent); }
+    .session-type.partial { background: var(--blue-dim); color: var(--blue); }
+    .session-type.break { background: var(--green-dim); color: var(--green); }
+    .session-dur { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text); margin-left: auto; }
+    .session-time { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--dim); }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      font-size: 13px;
+      color: var(--dim);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ════════════════════════════════
+// NIVEL 1
+// ════════════════════════════════
+function PomodoroN1() {
+  const [timeLeft, setTimeLeft] = useState(10);
+  const [isRunning, setIsRunning] = useState(false);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (isRunning && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    }
+    if (timeLeft === 0) {
+      setIsRunning(false);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [isRunning, timeLeft]);
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function toggleTimer() { setIsRunning(prev => !prev); }
+  function resetTimer() { setIsRunning(false); setTimeLeft(10); }
+
+  return (
+    <div className="pomodoro">
+      <div className="mode-badge work">⏱ Pomodoro</div>
+      <div className="clock">{formatTime(timeLeft)}</div>
+      <p style={{ fontSize: 12, color: 'var(--dim)', marginTop: 6, fontFamily: 'IBM Plex Mono' }}>
+        Demo con 10 segundos para prueba rápida
+      </p>
+      <div className="progress-wrapper">
+        <div className="progress-track">
+          <div className="progress-fill work" style={{ width: `${((10 - timeLeft) / 10) * 100}%` }} />
+        </div>
+      </div>
+      <div className="btn-row">
+        <button className="btn btn-primary" onClick={toggleTimer}>
+          {isRunning ? '⏸ Pausar' : '▶ Iniciar'}
+        </button>
+        <button className="btn btn-secondary" onClick={resetTimer}>↺ Reiniciar</button>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════
+// NIVEL 2
+// ════════════════════════════════
+const WORK_TIME = 1500;
+const BREAK_TIME = 300;
+
+function PomodoroN2() {
+  const [timeLeft, setTimeLeft] = useState(WORK_TIME);
+  const [isRunning, setIsRunning] = useState(false);
+  const [mode, setMode] = useState("work");
+  const [sessions, setSessions] = useState([]);
+  const intervalRef = useRef(null);
+
+  // Efecto 1: cuenta regresiva
+  useEffect(() => {
+    if (isRunning && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [isRunning, timeLeft]);
+
+  // Efecto 2: cambio de modo al llegar a 0
+  useEffect(() => {
+    if (timeLeft === 0) {
+      if (mode === "work") {
+        setSessions(prev => [...prev, {
+          id: Date.now(),
+          type: "work",
+          duration: WORK_TIME,
+          completedAt: new Date()
+        }]);
+      }
+      const newMode = mode === "work" ? "break" : "work";
+      setMode(newMode);
+      setTimeLeft(newMode === "work" ? WORK_TIME : BREAK_TIME);
+      setIsRunning(true);
+    }
+  }, [timeLeft]);
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function toggleTimer() { setIsRunning(prev => !prev); }
+  function resetTimer() {
+    setIsRunning(false);
+    setTimeLeft(WORK_TIME);
+    setMode("work");
+    setSessions([]);
+  }
+
+  const totalTime = mode === "work" ? WORK_TIME : BREAK_TIME;
+  const progress = ((totalTime - timeLeft) / totalTime) * 100;
+
+  return (
+    <div className="pomodoro">
+      <div className={`mode-badge ${mode}`}>
+        {mode === "work" ? "🔴 Trabajo" : "🟢 Descanso"}
+      </div>
+      <div className="clock">{formatTime(timeLeft)}</div>
+      <div className="progress-wrapper">
+        <div className="progress-track">
+          <div className={`progress-fill ${mode}`} style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+      <div className="btn-row">
+        <button className="btn btn-primary" onClick={toggleTimer}>
+          {isRunning ? '⏸ Pausar' : '▶ Iniciar'}
+        </button>
+        <button className="btn btn-secondary" onClick={resetTimer}>↺ Reiniciar</button>
+      </div>
+      <div className="sessions-section">
+        <div className="sessions-title">Sesiones completadas</div>
+        {sessions.length === 0 ? (
+          <div className="empty-state">Sin sesiones aún</div>
+        ) : (
+          <ul className="sessions-list" style={{ marginTop: 10 }}>
+            {sessions.map((s, i) => (
+              <li key={s.id} className="session-item">
+                <span className="session-num">#{i + 1}</span>
+                <span className={`session-type ${s.type}`}>{s.type}</span>
+                <span className="session-dur">{formatTime(s.duration)}</span>
+                <span className="session-time">
+                  {s.completedAt.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════
+// NIVEL 3
+// ════════════════════════════════
+function PomodoroN3() {
+  const [workMins, setWorkMins] = useState(1);
+  const [breakMins, setBreakMins] = useState(1);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [mode, setMode] = useState("work");
+  const [sessions, setSessions] = useState([]);
+  const intervalRef = useRef(null);
+
+  const workSecs = Math.max(1, workMins) * 60;
+  const breakSecs = Math.max(1, breakMins) * 60;
+  const totalTime = mode === "work" ? workSecs : breakSecs;
+
+  // Sincronizar timeLeft con la config cuando no está corriendo
+  useEffect(() => {
+    if (!isRunning) {
+      setTimeLeft(mode === "work" ? workSecs : breakSecs);
+    }
+  }, [workMins, breakMins]);
+
+  // Efecto 1: timer
+  useEffect(() => {
+    if (isRunning && timeLeft > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeLeft(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [isRunning, timeLeft]);
+
+  // Efecto 2: cambio de modo + sonido
+  useEffect(() => {
+    if (timeLeft === 0) {
+      try {
+        new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg").play();
+      } catch(e) {}
+
+      if (mode === "work") {
+        setSessions(prev => [...prev, {
+          id: Date.now(),
+          type: "work",
+          duration: workSecs,
+          completedAt: new Date()
+        }]);
+      }
+      const newMode = mode === "work" ? "break" : "work";
+      setMode(newMode);
+      setTimeLeft(newMode === "work" ? workSecs : breakSecs);
+      setIsRunning(true);
+    }
+  }, [timeLeft]);
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function toggleTimer() { setIsRunning(prev => !prev); }
+  function resetTimer() {
+    setIsRunning(false);
+    setMode("work");
+    setTimeLeft(workSecs);
+    setSessions([]);
+  }
+  function savePartial() {
+    const elapsed = totalTime - timeLeft;
+    if (elapsed === 0) return;
+    setSessions(prev => [...prev, {
+      id: Date.now(),
+      type: "partial",
+      duration: elapsed,
+      completedAt: new Date()
+    }]);
+  }
+
+  // Estadísticas derivadas (sin useState extra)
+  const workSessions = sessions.filter(s => s.type === "work");
+  const totalWorkSecs = sessions.reduce((acc, s) => acc + s.duration, 0);
+  const progress = Math.min(100, ((totalTime - timeLeft) / totalTime) * 100);
+
+  return (
+    <div className="pomodoro">
+      <div className="config-row">
+        <div className="config-field">
+          <label>Trabajo (min)</label>
+          <input type="number" min="1" max="60" value={workMins} disabled={isRunning}
+            onChange={e => setWorkMins(Number(e.target.value) || 1)} />
+        </div>
+        <div className="config-field">
+          <label>Descanso (min)</label>
+          <input type="number" min="1" max="60" value={breakMins} disabled={isRunning}
+            onChange={e => setBreakMins(Number(e.target.value) || 1)} />
+        </div>
+      </div>
+      <div className={`mode-badge ${mode}`}>
+        {mode === "work" ? "🔴 Trabajo" : "🟢 Descanso"}
+      </div>
+      <div className="clock">{formatTime(timeLeft)}</div>
+      <div className="progress-wrapper">
+        <div className="progress-track">
+          <div className={`progress-fill ${mode}`} style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+      <div className="btn-row">
+        <button className="btn btn-primary" onClick={toggleTimer}>
+          {isRunning ? '⏸ Pausar' : '▶ Iniciar'}
+        </button>
+        <button className="btn btn-secondary" onClick={resetTimer}>↺ Reiniciar</button>
+        <button className="btn btn-outline" onClick={savePartial}>💾 Guardar parcial</button>
+      </div>
+      <div className="sessions-section">
+        <div className="sessions-header">
+          <span className="sessions-title">Historial</span>
+          {sessions.length > 0 && (
+            <div className="stats-row">
+              <span className="stat">
+                <span className="stat-val">{workSessions.length}</span>
+                <span className="stat-lbl"> sesiones</span>
+              </span>
+              <span className="stat">
+                <span className="stat-val">{formatTime(totalWorkSecs)}</span>
+                <span className="stat-lbl"> total</span>
+              </span>
+            </div>
+          )}
+        </div>
+        {sessions.length === 0 ? (
+          <div className="empty-state">Sin sesiones aún</div>
+        ) : (
+          <ul className="sessions-list">
+            {sessions.map((s, i) => (
+              <li key={s.id} className="session-item">
+                <span className="session-num">#{i + 1}</span>
+                <span className={`session-type ${s.type === "partial" ? "partial" : s.type}`}>
+                  {s.type === "partial" ? "parcial" : s.type}
+                </span>
+                <span className="session-dur">{formatTime(s.duration)}</span>
+                <span className="session-time">
+                  {s.completedAt.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════
+// App principal
+// ════════════════════════════════
+function App() {
+  const [activeTab, setActiveTab] = useState(1);
+
+  return (
+    <>
+      <div className="tabs-wrapper">
+        <div className="level-label">Pomodoro Timer — Solución</div>
+        <div className="tabs">
+          {[
+            { n: 1, label: 'Nivel 1', sub: 'Guiado' },
+            { n: 2, label: 'Nivel 2', sub: 'Semi-guiado' },
+            { n: 3, label: 'Nivel 3', sub: 'Reto' },
+          ].map(({ n, label, sub }) => (
+            <button key={n} className={`tab ${activeTab === n ? 'active' : ''}`}
+              onClick={() => setActiveTab(n)}>
+              {label}
+              <span className="sub">{sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="timer-container">
+        {activeTab === 1 && <PomodoroN1 />}
+        {activeTab === 2 && <PomodoroN2 />}
+        {activeTab === 3 && <PomodoroN3 />}
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
