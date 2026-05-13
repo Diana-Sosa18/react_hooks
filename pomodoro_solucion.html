@@ -354,7 +354,6 @@ function PomodoroN2() {
   const [sessions, setSessions] = useState([]);
   const intervalRef = useRef(null);
 
-  // Efecto 1: cuenta regresiva
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
       intervalRef.current = setInterval(() => {
@@ -364,7 +363,6 @@ function PomodoroN2() {
     return () => clearInterval(intervalRef.current);
   }, [isRunning, timeLeft]);
 
-  // Efecto 2: cambio de modo al llegar a 0
   useEffect(() => {
     if (timeLeft === 0) {
       if (mode === "work") {
@@ -472,7 +470,6 @@ function PomodoroN3() {
     return () => clearInterval(intervalRef.current);
   }, [isRunning, timeLeft]);
 
-  // Efecto 2: cambio de modo + sonido
   useEffect(() => {
     if (timeLeft === 0) {
       try {
@@ -518,7 +515,7 @@ function PomodoroN3() {
     }]);
   }
 
-  // Estadísticas derivadas (sin useState extra)
+  // Estadísticas derivadas 
   const workSessions = sessions.filter(s => s.type === "work");
   const totalWorkSecs = sessions.reduce((acc, s) => acc + s.duration, 0);
   const progress = Math.min(100, ((totalTime - timeLeft) / totalTime) * 100);
